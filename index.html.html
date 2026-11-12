@@ -1,0 +1,610 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ByeByeMoney - Expense Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-shadow {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .expense-item {
+            transition: all 0.3s ease;
+        }
+        .expense-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .category-food { border-left: 4px solid #FF6B6B; }
+        .category-transportation { border-left: 4px solid #4ECDC4; }
+        .category-entertainment { border-left: 4px solid #45B7D1; }
+        .category-utilities { border-left: 4px solid #FFA07A; }
+        .category-healthcare { border-left: 4px solid #98D8C8; }
+        .category-shopping { border-left: 4px solid #F7DC6F; }
+        .category-other { border-left: 4px solid #BB8FCE; }
+        
+        .hero-image {
+            position: relative;
+            overflow: hidden;
+            border-radius: 15px;
+        }
+        
+        .hero-image img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            filter: brightness(0.7);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="gradient-bg text-white p-4 sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <i class="fas fa-wallet text-2xl"></i>
+                <h1 class="text-2xl font-bold">ByeByeMoney</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span id="currentDate" class="text-sm opacity-90"></span>
+                <button id="exportBtn" class="bg-white bg-opacity-20 px-4 py-2 rounded-lg hover:bg-opacity-30 transition">
+                    <i class="fas fa-download mr-2"></i>Export
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="container mx-auto px-4 py-8">
+        <div class="hero-image mb-8">
+            <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/dc8206e9-c1e5-43bd-a427-05cb98c01239.png" alt="Modern financial dashboard with charts, calculator, and money management tools on a clean desk with soft lighting" />
+            <div class="absolute inset-0 flex items-center justify-center">
+                <div class="text-center text-white">
+                    <h2 class="text-4xl font-bold mb-4">Track Where Your Money Goes</h2>
+                    <p class="text-xl opacity-90">Track, analyze, and optimize your spending habits</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-lg card-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm">Total Spent</p>
+                        <p id="totalSpent" class="text-2xl font-bold text-red-500">₹0.00</p>
+                    </div>
+                    <i class="fas fa-credit-card text-3xl text-red-500"></i>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-lg card-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm">This Month</p>
+                        <p id="monthlySpent" class="text-2xl font-bold text-blue-500">₹0.00</p>
+                    </div>
+                    <i class="fas fa-calendar-month text-3xl text-blue-500"></i>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-lg card-shadow" style="outline: rgb(0, 0, 0) dotted 3px; outline-offset: 1px;">
+                <div class="flex items-center justify-between" style="">
+                    <div>
+                        <p class="text-gray-600 text-sm" style="">Total Expenses</p>
+                        <p id="totalExpenses" class="text-2xl font-bold text-green-500" style="">0</p>
+                    </div>
+                    <i class="fas fa-list text-3xl text-green-500" style=""></i>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-lg card-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm">Avg per Day</p>
+                        <p id="avgPerDay" class="text-2xl font-bold text-purple-500">₹0.00</p>
+                    </div>
+                    <i class="fas fa-chart-line text-3xl text-purple-500"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Add Expense Form -->
+            <div class="lg:col-span-1">
+                <div class="bg-white p-6 rounded-lg card-shadow">
+                    <h3 class="text-xl font-bold mb-6 flex items-center">
+                        <i class="fas fa-plus-circle mr-3 text-blue-500"></i>
+                        Add New Expense
+                    </h3>
+                    <form id="expenseForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Amount (₹)</label>
+                            <input type="number" id="amount" step="0.01" required 
+                                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                            <select id="category" required 
+                                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="">Select Category</option>
+                                <option value="food">Food & Dining</option>
+                                <option value="transportation">Transportation</option>
+                                <option value="entertainment">Entertainment</option>
+                                <option value="utilities">Utilities</option>
+                                <option value="healthcare">Healthcare</option>
+                                <option value="shopping">Shopping</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                            <input type="text" id="description" required 
+                                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                   placeholder="Brief description...">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                            <input type="date" id="date" required 
+                                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <button type="submit" 
+                                class="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition font-medium">
+                            <i class="fas fa-plus mr-2"></i>Add Expense
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Category Chart -->
+                <div class="bg-white p-6 rounded-lg card-shadow mt-6">
+                    <h3 class="text-xl font-bold mb-4 flex items-center">
+                        <i class="fas fa-chart-pie mr-3 text-green-500"></i>
+                        Spending by Category
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Expenses List -->
+            <div class="lg:col-span-2">
+                <div class="bg-white p-6 rounded-lg card-shadow">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                        <h3 class="text-xl font-bold flex items-center">
+                            <i class="fas fa-history mr-3 text-purple-500"></i>
+                            Recent Expenses
+                        </h3>
+                        <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                            <input type="text" id="searchInput" placeholder="Search expenses..." 
+                                   class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <select id="filterCategory" 
+                                    class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="">All Categories</option>
+                                <option value="food">Food & Dining</option>
+                                <option value="transportation">Transportation</option>
+                                <option value="entertainment">Entertainment</option>
+                                <option value="utilities">Utilities</option>
+                                <option value="healthcare">Healthcare</option>
+                                <option value="shopping">Shopping</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="expensesList" class="space-y-3">
+                        <div class="text-center py-12 text-gray-500">
+                            <i class="fas fa-receipt text-4xl mb-4"></i>
+                            <p class="text-lg">No expenses yet. Add your first expense to get started!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Trend Chart -->
+                <div class="bg-white p-6 rounded-lg card-shadow mt-6">
+                    <h3 class="text-xl font-bold mb-4 flex items-center">
+                        <i class="fas fa-chart-line mr-3 text-blue-500"></i>
+                        Monthly Spending Trend
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg transform translate-x-full transition-transform duration-300 z-50">
+        <i class="fas fa-check-circle mr-2"></i>
+        <span id="toastMessage">Expense added successfully!</span>
+    </div>
+
+    <script>
+        // Global variables
+        let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+        let categoryChart, trendChart;
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCurrentDate();
+            setTodayDate();
+            renderExpenses();
+            updateStats();
+            initializeCharts();
+            setupEventListeners();
+        });
+
+        // Set current date
+        function updateCurrentDate() {
+            const now = new Date();
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        // Set today's date as default
+        function setTodayDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('date').value = today;
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            document.getElementById('expenseForm').addEventListener('submit', addExpense);
+            document.getElementById('searchInput').addEventListener('input', filterExpenses);
+            document.getElementById('filterCategory').addEventListener('change', filterExpenses);
+            document.getElementById('exportBtn').addEventListener('click', exportData);
+        }
+
+        // Add new expense
+        function addExpense(e) {
+            e.preventDefault();
+            
+            const amount = parseFloat(document.getElementById('amount').value);
+            const category = document.getElementById('category').value;
+            const description = document.getElementById('description').value;
+            const date = document.getElementById('date').value;
+
+            const expense = {
+                id: Date.now(),
+                amount: amount,
+                category: category,
+                description: description,
+                date: date,
+                timestamp: new Date().toISOString()
+            };
+
+            expenses.unshift(expense);
+            localStorage.setItem('expenses', JSON.stringify(expenses));
+            
+            // Reset form
+            document.getElementById('expenseForm').reset();
+            setTodayDate();
+            
+            // Update UI
+            renderExpenses();
+            updateStats();
+            updateCharts();
+            showToast('Expense added successfully!');
+        }
+
+        // Render expenses list
+        function renderExpenses(filteredExpenses = null) {
+            const expensesToRender = filteredExpenses || expenses;
+            const container = document.getElementById('expensesList');
+            
+            if (expensesToRender.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-gray-500">
+                        <i class="fas fa-receipt text-4xl mb-4"></i>
+                        <p class="text-lg">No expenses found.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = expensesToRender.map(expense => `
+                <div class="expense-item bg-gray-50 p-4 rounded-lg category-${expense.category}">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <span class="bg-${getCategoryColor(expense.category)}-100 text-${getCategoryColor(expense.category)}-800 px-3 py-1 rounded-full text-sm font-medium">
+                                    ${getCategoryIcon(expense.category)} ${getCategoryName(expense.category)}
+                                </span>
+                                <span class="text-gray-500 text-sm">${formatDate(expense.date)}</span>
+                            </div>
+                            <h4 class="font-medium text-gray-800 mb-1">${expense.description}</h4>
+                            <p class="text-sm text-gray-600">Added on ${formatDateTime(expense.timestamp)}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-2xl font-bold text-red-600">₹${expense.amount.toFixed(2)}</p>
+                            <button onclick="deleteExpense(${expense.id})" 
+                                    class="text-red-500 hover:text-red-700 mt-2 text-sm">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Delete expense
+        function deleteExpense(id) {
+            if (confirm('Are you sure you want to delete this expense?')) {
+                expenses = expenses.filter(expense => expense.id !== id);
+                localStorage.setItem('expenses', JSON.stringify(expenses));
+                renderExpenses();
+                updateStats();
+                updateCharts();
+                showToast('Expense deleted successfully!');
+            }
+        }
+
+        // Filter expenses
+        function filterExpenses() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const categoryFilter = document.getElementById('filterCategory').value;
+            
+            let filtered = expenses.filter(expense => {
+                const matchesSearch = expense.description.toLowerCase().includes(searchTerm) ||
+                                    expense.category.toLowerCase().includes(searchTerm);
+                const matchesCategory = !categoryFilter || expense.category === categoryFilter;
+                return matchesSearch && matchesCategory;
+            });
+            
+            renderExpenses(filtered);
+        }
+
+        // Update statistics
+        function updateStats() {
+            const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+            const currentMonth = new Date().getMonth();
+            const currentYear = new Date().getFullYear();
+            
+            const monthlyExpenses = expenses.filter(expense => {
+                const expenseDate = new Date(expense.date);
+                return expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
+            });
+            
+            const monthlyTotal = monthlyExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+            const avgPerDay = expenses.length > 0 ? total / Math.max(1, getDaysSinceFirstExpense()) : 0;
+            
+            document.getElementById('totalSpent').textContent = `₹${total.toFixed(2)}`;
+            document.getElementById('monthlySpent').textContent = `₹${monthlyTotal.toFixed(2)}`;
+            document.getElementById('totalExpenses').textContent = expenses.length;
+            document.getElementById('avgPerDay').textContent = `₹${avgPerDay.toFixed(2)}`;
+        }
+
+        // Get days since first expense
+        function getDaysSinceFirstExpense() {
+            if (expenses.length === 0) return 1;
+            const firstExpense = expenses[expenses.length - 1];
+            const firstDate = new Date(firstExpense.date);
+            const today = new Date();
+            const diffTime = Math.abs(today - firstDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return Math.max(1, diffDays);
+        }
+
+        // Initialize charts
+        function initializeCharts() {
+            initializeCategoryChart();
+            initializeTrendChart();
+        }
+
+        // Category chart
+        function initializeCategoryChart() {
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            const categoryData = getCategoryData();
+            
+            categoryChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: categoryData.labels,
+                    datasets: [{
+                        data: categoryData.data,
+                        backgroundColor: [
+                            '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A',
+                            '#98D8C8', '#F7DC6F', '#BB8FCE'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Trend chart
+        function initializeTrendChart() {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            const trendData = getTrendData();
+            
+            trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: trendData.labels,
+                    datasets: [{
+                        label: 'Monthly Spending',
+                        data: trendData.data,
+                        borderColor: '#4F46E5',
+                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '₹' + value.toFixed(0);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Get category data for chart
+        function getCategoryData() {
+            const categoryTotals = {};
+            expenses.forEach(expense => {
+                categoryTotals[expense.category] = (categoryTotals[expense.category] || 0) + expense.amount;
+            });
+            
+            return {
+                labels: Object.keys(categoryTotals).map(cat => getCategoryName(cat)),
+                data: Object.values(categoryTotals)
+            };
+        }
+
+        // Get trend data for chart
+        function getTrendData() {
+            const monthlyTotals = {};
+            expenses.forEach(expense => {
+                const date = new Date(expense.date);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                monthlyTotals[monthKey] = (monthlyTotals[monthKey] || 0) + expense.amount;
+            });
+            
+            const sortedMonths = Object.keys(monthlyTotals).sort();
+            const last6Months = sortedMonths.slice(-6);
+            
+            return {
+                labels: last6Months.map(month => {
+                    const [year, monthNum] = month.split('-');
+                    return new Date(year, monthNum - 1).toLocaleDateString('en-US', { month: 'short' });
+                }),
+                data: last6Months.map(month => monthlyTotals[month])
+            };
+        }
+
+        // Update charts
+        function updateCharts() {
+            const categoryData = getCategoryData();
+            categoryChart.data.labels = categoryData.labels;
+            categoryChart.data.datasets[0].data = categoryData.data;
+            categoryChart.update();
+            
+            const trendData = getTrendData();
+            trendChart.data.labels = trendData.labels;
+            trendChart.data.datasets[0].data = trendData.data;
+            trendChart.update();
+        }
+
+        // Utility functions
+        function getCategoryName(category) {
+            const names = {
+                food: 'Food & Dining',
+                transportation: 'Transportation',
+                entertainment: 'Entertainment',
+                utilities: 'Utilities',
+                healthcare: 'Healthcare',
+                shopping: 'Shopping',
+                other: 'Other'
+            };
+            return names[category] || 'Other';
+        }
+
+        function getCategoryIcon(category) {
+            const icons = {
+                food: '🍽️',
+                transportation: '🚗',
+                entertainment: '🎬',
+                utilities: '⚡',
+                healthcare: '🏥',
+                shopping: '🛍️',
+                other: '📝'
+            };
+            return icons[category] || '📝';
+        }
+
+        function getCategoryColor(category) {
+            const colors = {
+                food: 'red',
+                transportation: 'teal',
+                entertainment: 'blue',
+                utilities: 'orange',
+                healthcare: 'green',
+                shopping: 'yellow',
+                other: 'purple'
+            };
+            return colors[category] || 'gray';
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        function formatDateTime(dateString) {
+            return new Date(dateString).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            toastMessage.textContent = message;
+            toast.classList.remove('translate-x-full');
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+            }, 3000);
+        }
+
+        function exportData() {
+            const dataStr = JSON.stringify(expenses, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'expenses.json';
+            link.click();
+            showToast('Data exported successfully!');
+        }
+    </script>
+</body>
+</html>
+
